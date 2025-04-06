@@ -30,6 +30,8 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -76,14 +78,24 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 List<MessageModel> messages = new ArrayList<>();
-                for(DataSnapshot dataSnapshot: snapshot.getChildren()){
+                for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
                     MessageModel messageModel = dataSnapshot.getValue(MessageModel.class);
                     messages.add(messageModel);
                 }
+
+// Ordina i messaggi in base al timestamp
+                Collections.sort(messages, new Comparator<MessageModel>() {
+                    @Override
+                    public int compare(MessageModel o1, MessageModel o2) {
+                        return Long.compare(o1.getTimestamp(), o2.getTimestamp());
+                    }
+                });
+
                 messageAdapter.clear();
-                for(MessageModel message: messages){
+                for (MessageModel message : messages) {
                     messageAdapter.add(message);
                 }
+
             }
 
             @Override
@@ -110,7 +122,14 @@ public class ChatActivity extends AppCompatActivity {
 
     private void SendMessage(String message) {
         String messageId = UUID.randomUUID().toString();
-        MessageModel messageModel = new MessageModel(messageId,FirebaseAuth.getInstance().getUid(),message);
+        long timestamp = System.currentTimeMillis();
+        MessageModel messageModel = new MessageModel(
+                FirebaseAuth.getInstance().getUid(),
+                receiverId,
+                message,
+                timestamp
+        );
+
         messageAdapter.add(messageModel);
 
         databaseReferenceSender.child(messageId).setValue(messageModel)

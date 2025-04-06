@@ -1,8 +1,6 @@
 package com.catania.firechat5;
 
-
 import android.content.Context;
-import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,79 +14,80 @@ import com.google.firebase.auth.FirebaseAuth;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MyViewHolder> {
-    private static final int VIEW_TYPE_MESSAGE_SENT = 1;
-    private static final int VIEW_TYPE_MESSAGE_RECEIVED = 2;
+public class MessageAdapter extends RecyclerView.Adapter {
+    private static final int MSG_TYPE_RIGHT = 0; //messaggio inviato
+    private static final int MSG_TYPE_LEFT = 1;// messaggio ricevuto
+
     private Context context;
-    private List<MessageModel> messageModelList;
+    private List<MessageModel> messages;
 
     public MessageAdapter(Context context) {
-        this.messageModelList = new ArrayList<>();
-        this.context       = context;
-    }
-    public void add(MessageModel messageModel){
-        messageModelList.add(messageModel);
-
-    }
-    public void clear(){
-        messageModelList.clear();
-        notifyDataSetChanged();
+        this.context = context;
+        this.messages = new ArrayList<>();
     }
 
     @NonNull
     @Override
-    public MessageAdapter.MyViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-        if(viewType == VIEW_TYPE_MESSAGE_SENT){
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.message_row_sent,parent,false);
-            return new MyViewHolder(view);
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        if (viewType == MSG_TYPE_RIGHT) {
+            View view = LayoutInflater.from(context).inflate(R.layout.chat_item_right, parent, false);
+            return new SentViewHolder(view);
+        } else {
+            View view = LayoutInflater.from(context).inflate(R.layout.chat_item_left, parent, false);
+            return new ReceivedViewHolder(view);
         }
-        else
-        {
-                View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.message_row_received, parent, false);
-                return new MyViewHolder(view);
-        }
-
     }
 
     @Override
-    public void onBindViewHolder(@NonNull MessageAdapter.MyViewHolder holder, int position) {
-        MessageModel messageModel = messageModelList.get(position);
-        if(messageModel.getSenderId().equals(FirebaseAuth.getInstance().getUid()))
-        {
-            holder.textViewSentMessage.setText(messageModel.getMessage());
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        MessageModel message = messages.get(position);
+        if(holder.getClass() == SentViewHolder.class){
+            SentViewHolder sentViewHolder = (SentViewHolder) holder;
+            sentViewHolder.message.setText(message.getMessage());
+        } else{
+            ReceivedViewHolder receivedViewHolder = (ReceivedViewHolder) holder;
+            receivedViewHolder.message.setText(message.getMessage());
         }
-        else{
-            holder.textViewReceivedMessage.setText(messageModel.getMessage());
-        }
-
-
     }
 
     @Override
     public int getItemCount() {
-        return messageModelList.size();
+        return messages.size();
     }
 
-    public List<MessageModel> getMessageModelList() {
-        return messageModelList;
-
+    public void add(MessageModel messageModel) {
+        messages.add(messageModel);
+        notifyItemInserted(messages.size() - 1);
+    }
+    public void clear() {
+        messages.clear();
+        notifyDataSetChanged();
     }
 
     @Override
     public int getItemViewType(int position) {
-        if(messageModelList.get(position).getSenderId().equals(FirebaseAuth.getInstance().getUid()))
-            return VIEW_TYPE_MESSAGE_SENT;
-        else
-            return VIEW_TYPE_MESSAGE_RECEIVED;
+        MessageModel message = messages.get(position);
+        if(FirebaseAuth.getInstance().getUid().equals(message.getSenderId())){
+            return MSG_TYPE_RIGHT;
+        } else{
+            return MSG_TYPE_LEFT;
+        }
     }
 
-    public class MyViewHolder extends RecyclerView.ViewHolder{
-        private TextView textViewSentMessage, textViewReceivedMessage;
-        public MyViewHolder(@NonNull View itemView) {
+    class ReceivedViewHolder extends RecyclerView.ViewHolder{
+        TextView message;
+
+        public ReceivedViewHolder(@NonNull View itemView){
             super(itemView);
-            textViewSentMessage = itemView.findViewById(R.id.textViewSentMessage);
-            textViewReceivedMessage= itemView.findViewById(R.id.textViewReceivedMessage);
+            message = itemView.findViewById(R.id.message_text_received);
+        }
+    }
+    class SentViewHolder extends RecyclerView.ViewHolder{
+        TextView message;
+
+        public SentViewHolder(@NonNull View itemView){
+            super(itemView);
+            message = itemView.findViewById(R.id.message_text_sent);
         }
     }
 }
